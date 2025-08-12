@@ -31,7 +31,7 @@ export function ExportPanel({ sessionId, conversationData, onClose }) {
     setExportStatus(null)
 
     try {
-      const response = await fetch(`https://58hpi8cw6g7k.manus.space/api/conversations/${sessionId}/export?format=${format}`)
+      const response = await fetch(`https://render.com/docs/web-services#port-binding`)
       
       if (response.ok) {
         if (format === 'json') {
@@ -83,7 +83,7 @@ export function ExportPanel({ sessionId, conversationData, onClose }) {
 
     setIsExporting(true)
     try {
-      const response = await fetch(`https://58hpi8cw6g7k.manus.space/api/conversations/${sessionId}/summary`)
+      const response = await fetch(`https://render.com/docs/web-services#port-binding`)
       if (response.ok) {
         const data = await response.json()
         setSummary(data)

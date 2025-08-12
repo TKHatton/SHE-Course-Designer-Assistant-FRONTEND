@@ -69,7 +69,7 @@ function App() {
 
   const initializeConversation = async () => {
     try {
-      const response = await fetch('https://58hpi8cw6g7k.manus.space/api/conversations', {
+      const response = await fetch('https://render.com/docs/web-services#port-binding', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
