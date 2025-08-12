@@ -31,7 +31,7 @@ export function ExportPanel({ sessionId, conversationData, onClose }) {
     setExportStatus(null)
 
     try {
-      const response = await fetch(`https://render.com/docs/web-services#port-binding`)
+      const response = await fetch(`https://she-course-designer-assistant-backend.onrender.com/`)
       
       if (response.ok) {
         if (format === 'json') {
@@ -83,7 +83,7 @@ export function ExportPanel({ sessionId, conversationData, onClose }) {
 
     setIsExporting(true)
     try {
-      const response = await fetch(`https://render.com/docs/web-services#port-binding`)
+      const response = await fetch(`https://she-course-designer-assistant-backend.onrender.com/`)
       if (response.ok) {
         const data = await response.json()
         setSummary(data)

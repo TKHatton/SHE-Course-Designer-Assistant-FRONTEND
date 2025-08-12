@@ -69,7 +69,7 @@ function App() {
 
   const initializeConversation = async () => {
     try {
-      const response = await fetch('https://render.com/docs/web-services#port-binding', {
+      const response = await fetch('https://she-course-designer-assistant-backend.onrender.com/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,7 +106,7 @@ function App() {
     setError(null)
 
     try {
-      const response = await fetch(`https://58hpi8cw6g7k.manus.space/api/conversations/${sessionId}/messages`, {
+      const response = await fetch(`https://she-course-designer-assistant-backend.onrender.com/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
