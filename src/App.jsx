@@ -39,6 +39,9 @@ function App() {
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
 
+  // FIXED: Correct backend URL with proper endpoints
+  const BACKEND_URL = 'https://she-course-designer-assistant-backend.onrender.com'
+
   // Auto-scroll to new messages
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -50,6 +53,7 @@ function App() {
 
   // Initialize conversation on component mount
   useEffect(() => {
+    console.log('App mounted, initializing conversation...')
     initializeConversation()
   }, [])
 
@@ -68,35 +72,77 @@ function App() {
   }, [])
 
   const initializeConversation = async () => {
+    console.log('🚀 Starting conversation initialization...')
     try {
-      const response = await fetch('https://she-course-designer-assistant-backend.onrender.com/api/conversations', {
-
+      const url = `${BACKEND_URL}/api/conversations`
+      console.log('📡 Making request to:', url)
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
       })
       
+      console.log('📥 Response status:', response.status)
+      console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()))
+      
       if (response.ok) {
         const data = await response.json()
+        console.log('✅ Conversation initialized successfully:', data)
+        
         setSessionId(data.session_id)
         setConversationData(data.conversation)
         setMessages([data.welcome_message])
+        setError(null)
+        
+        console.log('✅ State updated - Session ID:', data.session_id)
       } else {
-        console.error('Failed to initialize conversation')
+        const errorText = await response.text()
+        console.error('❌ Failed to initialize conversation:', response.status, errorText)
+        setError(`Failed to initialize conversation: ${response.status}`)
       }
     } catch (error) {
-      console.error('Error initializing conversation:', error)
+      console.error('❌ Error initializing conversation:', error)
+      setError(`Connection error: ${error.message}`)
     }
   }
 
   const sendMessage = async () => {
-    if (!inputMessage.trim() || !sessionId || isLoading || !isOnline) return
+    console.log('🚀 Send message clicked!')
+    console.log('📝 Input message:', inputMessage)
+    console.log('🔑 Session ID:', sessionId)
+    console.log('⏳ Is loading:', isLoading)
+    console.log('🌐 Is online:', isOnline)
+
+    if (!inputMessage.trim()) {
+      console.log('❌ Empty message, not sending')
+      return
+    }
+    
+    if (!sessionId) {
+      console.log('❌ No session ID, not sending')
+      setError('No active session. Please refresh the page.')
+      return
+    }
+    
+    if (isLoading) {
+      console.log('❌ Already loading, not sending')
+      return
+    }
+    
+    if (!isOnline) {
+      console.log('❌ Offline, not sending')
+      return
+    }
+
+    const messageToSend = inputMessage
+    console.log('📤 Sending message:', messageToSend)
 
     const userMessage = {
       id: Date.now(),
       sender: 'user',
-      content: inputMessage,
+      content: messageToSend,
       timestamp: new Date().toISOString()
     }
 
@@ -107,30 +153,48 @@ function App() {
     setError(null)
 
     try {
-      const response = await fetch(`https://she-course-designer-assistant-backend.onrender.com/api/conversations/${sessionId}/messages`, {
-
+      const url = `${BACKEND_URL}/api/conversations/${sessionId}/messages`
+      console.log('📡 Making message request to:', url)
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: inputMessage }),
+        body: JSON.stringify({ message: messageToSend }),
       })
+
+      console.log('📥 Message response status:', response.status)
+      console.log('📥 Message response headers:', Object.fromEntries(response.headers.entries()))
 
       if (response.ok) {
         const data = await response.json()
+        console.log('✅ Message sent successfully:', data)
         
         if (data.safety_violation) {
+          console.log('⚠️ Safety violation detected')
           setMessages(prev => [...prev, data.ai_response])
         } else {
+          console.log('✅ Normal response received')
           setMessages(prev => [...prev, data.ai_response])
-          setConversationData(prev => ({
-            ...prev,
-            ...data.conversation_update
-          }))
+          if (data.conversation_update) {
+            setConversationData(prev => ({
+              ...prev,
+              ...data.conversation_update
+            }))
+          }
         }
       } else {
-        const errorData = await response.json()
-        const errorMessage = errorData.error || 'Sorry, I encountered an error. Please try again.'
+        const errorText = await response.text()
+        console.error('❌ Message send failed:', response.status, errorText)
+        
+        let errorMessage = 'Sorry, I encountered an error. Please try again.'
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMessage = errorData.error || errorMessage
+        } catch (e) {
+          console.log('Could not parse error response as JSON')
+        }
         
         setMessages(prev => [...prev, {
           id: Date.now(),
@@ -143,8 +207,8 @@ function App() {
         setError(errorMessage)
       }
     } catch (error) {
-      console.error('Error sending message:', error)
-      const errorMessage = 'Sorry, I encountered a connection error. Please try again.'
+      console.error('❌ Error sending message:', error)
+      const errorMessage = `Connection error: ${error.message}`
       
       setMessages(prev => [...prev, {
         id: Date.now(),
@@ -158,12 +222,14 @@ function App() {
     } finally {
       setIsLoading(false)
       setIsTyping(false)
+      console.log('✅ Send message completed')
     }
   }
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
+      console.log('⌨️ Enter key pressed, sending message')
       sendMessage()
     }
   }
@@ -230,6 +296,11 @@ function App() {
                   <Wifi className="w-4 h-4 text-green-500" aria-label="Online" />
                 ) : (
                   <WifiOff className="w-4 h-4 text-red-500" aria-label="Offline" />
+                )}
+                {sessionId && (
+                  <Badge variant="outline" className="text-xs">
+                    Connected
+                  </Badge>
                 )}
               </div>
 
@@ -312,6 +383,20 @@ function App() {
         </div>
       )}
 
+      {/* Debug Info (remove in production) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="container mx-auto px-4 py-2">
+          <Alert className="bg-blue-50 border-blue-200">
+            <AlertDescription className="text-xs">
+              <strong>Debug:</strong> Session ID: {sessionId || 'None'} | 
+              Messages: {messages.length} | 
+              Loading: {isLoading ? 'Yes' : 'No'} | 
+              Online: {isOnline ? 'Yes' : 'No'}
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+
       {/* Main Chat Interface */}
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-200px)]">
@@ -328,7 +413,17 @@ function App() {
               </CardHeader>
               <CardContent>
                 <div className="text-sm text-muted-foreground">
-                  No areas covered yet
+                  {conversationData?.framework_areas_covered?.length > 0 ? (
+                    <div className="space-y-1">
+                      {conversationData.framework_areas_covered.map((area, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {area}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    'No areas covered yet'
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -372,6 +467,23 @@ function App() {
                 {/* Messages */}
                 <ScrollArea className="flex-1 pr-4">
                   <div className="space-y-4">
+                    {messages.length === 0 && !isLoading && (
+                      <div className="text-center text-muted-foreground py-8">
+                        <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>Initializing conversation...</p>
+                        {!sessionId && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={initializeConversation}
+                            className="mt-2"
+                          >
+                            Retry Connection
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                    
                     {messages.map((message, index) => (
                       <MessageBubble key={message.id} message={message} index={index} />
                     ))}
@@ -409,14 +521,14 @@ function App() {
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Share your course vision..."
-                    disabled={isLoading || !isOnline}
+                    disabled={isLoading || !isOnline || !sessionId}
                     className="flex-1"
                     aria-label="Message input"
                     aria-describedby="input-help"
                   />
                   <Button 
                     onClick={sendMessage}
-                    disabled={isLoading || !inputMessage.trim() || !isOnline}
+                    disabled={isLoading || !inputMessage.trim() || !isOnline || !sessionId}
                     size="icon"
                     className="shrink-0"
                     aria-label="Send message"
@@ -426,6 +538,7 @@ function App() {
                 </div>
                 <p id="input-help" className="text-xs text-muted-foreground mt-2">
                   Press Enter to send • Educational use only • Privacy protected
+                  {!sessionId && ' • Waiting for connection...'}
                 </p>
               </div>
             </Card>
