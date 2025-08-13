@@ -69,7 +69,8 @@ function App() {
 
   const initializeConversation = async () => {
     try {
-      const response = await fetch('https://she-course-designer-assistant-backend.onrender.com/', {
+      const response = await fetch('https://she-course-designer-assistant-backend.onrender.com/api/conversations', {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,7 +107,8 @@ function App() {
     setError(null)
 
     try {
-      const response = await fetch(`https://she-course-designer-assistant-backend.onrender.com/`, {
+      const response = await fetch(`https://she-course-designer-assistant-backend.onrender.com/api/conversations/${sessionId}/messages`, {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
